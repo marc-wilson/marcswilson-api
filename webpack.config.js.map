@@ -1,0 +1,1 @@
+{"version":3,"file":"webpack.config.js","sourceRoot":"","sources":["webpack.config.ts"],"names":[],"mappings":";;AAAA,iCAAmC;AAEnC,MAAM,CAAC,OAAO,GAAG;IACb,OAAO,EAAE;QACL,IAAI,OAAO,CAAC,YAAY,CAAC,OAAO,CAAC;KACpC;IACD,KAAK,EAAE,aAAa;IACpB,MAAM,EAAE;QACJ,IAAI,EAAE,SAAS,GAAG,OAAO;QACzB,QAAQ,EAAE,WAAW;KACxB;IACD,MAAM,EAAE,MAAM;CACjB,CAAA"}
