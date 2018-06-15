@@ -12,7 +12,7 @@ module.exports = {
             }
         ])
     ],
-    entry: './server.js',
+    entry: './src/server.js',
     output: {
         path: __dirname + '/dist',
         filename: 'server.js'
