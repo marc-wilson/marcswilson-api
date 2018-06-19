@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ApiTest = require("./app");
+var BoxscoresApi = require("./mlb/boxscores-api");
 var Server = /** @class */ (function () {
     function Server() {
         this._cors = require('cors');
@@ -15,6 +16,7 @@ var Server = /** @class */ (function () {
         this._app.use(this._express.static(this._path.join(__dirname + './')));
         this._app.use(this._cors());
         this._app.use('/api', ApiTest);
+        this._app.use('/api/mlb/boxscores', BoxscoresApi);
     }
     return Server;
 }());

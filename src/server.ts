@@ -1,4 +1,5 @@
 import * as ApiTest from './app';
+import * as BoxscoresApi from './mlb/boxscores-api';
 
 class Server {
     private _express: any;
@@ -19,7 +20,8 @@ class Server {
         this._app.use(this._bodyParser.json());
         this._app.use(this._express.static(this._path.join(__dirname + './')));
         this._app.use(this._cors());
-        this._app.use('/api', ApiTest)
+        this._app.use('/api', ApiTest);
+        this._app.use('/api/mlb/boxscores', BoxscoresApi);
     }
 }
 
