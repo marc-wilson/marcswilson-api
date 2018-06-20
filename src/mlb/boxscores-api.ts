@@ -32,7 +32,7 @@ export class BoxscoresApi {
         const res = await this._request.get(url);
         const json = JSON.parse(res);
         const boxscores = new Boxscores(json.data);
-        return boxscores
+        return boxscores.sort();
     }
 }
 
