@@ -33,6 +33,10 @@ export class ChadwickApi {
             const result = await this.getTopHomerunHitters();
             res.status(200).json(result);
         });
+        this._router.get('/teams/oldest', async (req, res) => {
+            const result = await this.getOldestTeams();
+            res.status(200).json(result);
+        });
 
         module.exports = this._router;
     }
@@ -83,11 +87,23 @@ export class ChadwickApi {
                 }
             },
             {
+                $lookup: {
+                    from: 'people',
+                    foreignField: 'playerID',
+                    localField: '_id',
+                    as: 'player'
+                }
+            },
+            {
+                $unwind: '$player'
+            },
+            {
                 $project: {
                     H: 1,
                     AB: 1,
                     HR: 1,
-                    BA: { $divide: ['$H', '$AB'] }
+                    BA: { $divide: ['$H', '$AB'] },
+                    name: { $concat: ['$player.nameFirst', ' ', '$player.nameLast'] }
                 }
             },
             {
@@ -95,7 +111,32 @@ export class ChadwickApi {
                     HR: -1
                 }
             }
-        ]).limit(10).toArray();
+        ]).limit(20).toArray();
+        return docs;
+    }
+    async getOldestTeams() {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('teams');
+        const docs = await collection.aggregate([
+            {
+                $group: {
+                    _id: '$teamID',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    count: 1
+                }
+            },
+            {
+                $sort: {
+                    count: -1
+                }
+            }
+        ]).toArray();
+        await client.close();
         return docs;
     }
 
