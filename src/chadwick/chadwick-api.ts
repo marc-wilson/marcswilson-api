@@ -33,8 +33,12 @@ export class ChadwickApi {
             const result = await this.getTopHomerunHitters();
             res.status(200).json(result);
         });
-        this._router.get('/teams/oldest', async (req, res) => {
-            const result = await this.getOldestTeams();
+        this._router.get('/franchise/oldest', async (req, res) => {
+            const result = await this.getOldestFranchises();
+            res.status(200).json(result);
+        });
+        this._router.get('/worldseries/wins', async (req, res) => {
+            const result = await this.getTopWorldSeriesWinners();
             res.status(200).json(result);
         });
 
@@ -112,22 +116,38 @@ export class ChadwickApi {
                 }
             }
         ]).limit(20).toArray();
+        await client.close();
         return docs;
     }
-    async getOldestTeams() {
+    async getOldestFranchises() {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('teams');
         const docs = await collection.aggregate([
             {
+              $match: {
+                  $and: [
+                      { W: { $gt: 0 } },
+                      { G: { $gt: 0 } }
+                  ]
+              }
+            },
+            {
                 $group: {
-                    _id: '$teamID',
-                    count: { $sum: 1 }
+                    _id: '$franchID',
+                    count: { $sum: 1 },
+                    W: { $sum: '$W' },
+                    G: { $sum: '$G' },
+                    name: { $last: '$name' }
                 }
             },
             {
                 $project: {
-                    count: 1
+                    count: 1,
+                    W: 1,
+                    G: 1,
+                    winPercentage: { $multiply: [{ $divide: ['$W', '$G'] }, 100] },
+                    name: 1
                 }
             },
             {
@@ -135,7 +155,33 @@ export class ChadwickApi {
                     count: -1
                 }
             }
-        ]).toArray();
+        ]).limit(10).toArray();
+        await client.close();
+        return docs;
+    }
+    async getTopWorldSeriesWinners() {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('teams');
+        const docs = await collection.aggregate([
+            {
+                $match: {
+                    WSWin: 'Y'
+                }
+            },
+            {
+                $group: {
+                    _id: '$teamID',
+                    count: { $sum: 1 },
+                    name: { $last: '$name' }
+                }
+            },
+            {
+                $sort: {
+                    count: -1
+                }
+            }
+        ]).limit(10).toArray();
         await client.close();
         return docs;
     }
