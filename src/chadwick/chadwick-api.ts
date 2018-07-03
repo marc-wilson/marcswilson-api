@@ -41,6 +41,10 @@ export class ChadwickApi {
             const result = await this.getTopWorldSeriesWinners();
             res.status(200).json(result);
         });
+        this._router.get('/homegames/attendance', async (req, res) => {
+           const result = await this.getAttentanceTrend();
+           res.status(200).json(result);
+        });
 
         module.exports = this._router;
     }
@@ -184,6 +188,29 @@ export class ChadwickApi {
         ]).limit(10).toArray();
         await client.close();
         return docs;
+    }
+    async getAttentanceTrend() {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('homegames');
+        const docs = await collection.aggregate([
+            {
+                $group: {
+                    _id: '$year.key',
+                    count: { $sum: '$attendance' }
+                }
+            },
+            {
+                $sort: {
+                    '_id': 1
+                }
+            }
+        ]).toArray();
+        await client.close();
+        return docs.map( d => {
+            d._id = Number(d._id);
+            return d;
+        });
     }
 
 }
