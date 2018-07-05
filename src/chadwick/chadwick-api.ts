@@ -45,6 +45,15 @@ export class ChadwickApi {
            const result = await this.getAttentanceTrend();
            res.status(200).json(result);
         });
+        this._router.get('/players/search/', async (req, res) => {
+            const results = await this.getPlayerAutocompleteList();
+            res.status(200).json(results);
+        });
+        this._router.get('/players/search/:term', async (req, res) => {
+            const term = req.params.term;
+            const results = await this.getPlayerAutocompleteList(term);
+            res.status(200).json(results);
+        });
 
         module.exports = this._router;
     }
@@ -211,6 +220,31 @@ export class ChadwickApi {
             d._id = Number(d._id);
             return d;
         });
+    }
+    async getPlayerAutocompleteList(term?: string) {
+        let docs = [];
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('people');
+        if (term) {
+            docs = await collection.aggregate( [
+                {
+                    $match: {
+                        $text: { $search: term }
+                    }
+                }
+            ] ).limit( 25 ).toArray();
+        } else {
+            docs = await collection.aggregate([
+                {
+                    $sort: {
+                        nameFirst: -1
+                    }
+                }
+            ]).limit(25).toArray();
+        }
+        await client.close();
+        return docs;
     }
 
 }
