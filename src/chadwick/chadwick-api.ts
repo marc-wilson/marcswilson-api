@@ -54,12 +54,15 @@ export class ChadwickApi {
             const results = await this.getPlayerAutocompleteList(term);
             res.status(200).json(results);
         });
+        this._router.get('/players/compare/:player1ID/:player2ID', async (req, res) => {
+
+        });
 
         module.exports = this._router;
     }
 
     async connect(): Promise<MongoClient> {
-        const client = await MongoClient.connect('mongodb://localhost:27017');
+        const client = await MongoClient.connect('mongodb://localhost:27017', { useNewUrlParser: true });
         return client;
     }
     async getCollectionCount(name: string): Promise<{ collection: string, count: number }> {
@@ -227,24 +230,52 @@ export class ChadwickApi {
         const db = client.db(this.databaseName);
         const collection = db.collection('people');
         if (term) {
-            docs = await collection.aggregate( [
+            docs = await collection.aggregate([
                 {
                     $match: {
-                        $text: { $search: term }
+                        $text: {
+                            $search: term,
+                            $caseSensitive: false
+                        }
+                    }
+                },
+                {
+                  $project: {
+                      playerID: 1,
+                      name: { $concat: [ '$nameFirst', ' ', '$nameLast'] }
+                  }
+                },
+                {
+                    $sort: {
+                        score: { $meta: 'textScore' }
                     }
                 }
-            ] ).limit( 25 ).toArray();
+            ]).limit( 25 ).toArray();
         } else {
             docs = await collection.aggregate([
                 {
+                    $project: {
+                        playerID: 1,
+                        name: { $concat: [ '$nameFirst', ' ', '$nameLast'] }
+                    }
+                },
+                {
                     $sort: {
-                        nameFirst: -1
+                        name: 1
                     }
                 }
             ]).limit(25).toArray();
         }
         await client.close();
         return docs;
+    }
+    async getBattingComparison(player1ID: string, player2ID: string) {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('batting');
+
+
+        await client.close();
     }
 
 }
