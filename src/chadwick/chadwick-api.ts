@@ -55,7 +55,10 @@ export class ChadwickApi {
             res.status(200).json(results);
         });
         this._router.get('/players/compare/:player1ID/:player2ID', async (req, res) => {
-
+            const player1ID = req.params.player1ID;
+            const player2ID = req.params.player2ID;
+            const data = await Promise.all([this.getPlayerStats(player1ID), this.getPlayerStats(player2ID)]);
+            res.status(200).json(data);
         });
 
         module.exports = this._router;
@@ -269,13 +272,56 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getBattingComparison(player1ID: string, player2ID: string) {
+    async getPlayerStats(playerID: string) {
         const client = await this.connect();
         const db = client.db(this.databaseName);
-        const collection = db.collection('batting');
-
-
+        const collection = db.collection('people');
+        const data = await collection.aggregate([
+            {
+                $match: {
+                    playerID: playerID
+                }
+            },
+            {
+                $lookup: {
+                    from: 'batting',
+                    localField: 'playerID',
+                    foreignField: 'playerID',
+                    as: 'batting'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'fielding',
+                    localField: 'playerID',
+                    foreignField: 'playerID',
+                    as: 'fielding'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'pitching',
+                    localField: 'playerID',
+                    foreignField: 'playerID',
+                    as: 'pitching'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'salaries',
+                    localField: 'playerID',
+                    foreignField: 'playerID',
+                    as: 'salaries'
+                }
+            }
+        ]).toArray();
         await client.close();
+        if (data.length === 1) {
+            return { playerID: playerID, data: data[ 0 ] };
+        } else {
+            console.error('SCENARIO NOT COVERED');
+            debugger;
+        }
     }
 
 }
