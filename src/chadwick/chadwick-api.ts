@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import { ChadwickCounts } from './ChadwickCounts';
+import { ChadwickCounts } from './chadwick-counts';
 
 export class ChadwickApi {
     private _express: any;
@@ -76,7 +76,7 @@ export class ChadwickApi {
         await client.close();
         return { collection: name, count: count };
     }
-    async getPlayerRegionData() {
+    async getPlayerRegionData(): Promise<{ country: string, count: number}[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('people');
@@ -85,6 +85,13 @@ export class ChadwickApi {
                 $group: {
                     _id: '$birthCountry',
                     count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    country: '$_id',
+                    count: '$count',
+                    _id: 0
                 }
             }
         ]).toArray();
