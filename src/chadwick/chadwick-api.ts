@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
-import { ChadwickCounts } from './chadwick-counts';
+import { ChadwickCounts } from './models/chadwick-counts';
+import { ChadwickTopHitter } from './models/chadwick-top-hitter';
 
 export class ChadwickApi {
     private _express: any;
@@ -26,11 +27,11 @@ export class ChadwickApi {
             res.status(200).json(chadwickCounts);
         });
         this._router.get('/players/region', async (req, res) => {
-            const result = await this.getPlayerRegionData();
+            const result: { country: string, count: number }[] = await this.getPlayerRegionData();
             res.status(200).json(result);
         });
         this._router.get('/players/top-hitters', async (req, res) => {
-            const result = await this.getTopHomerunHitters();
+            const result = await this.getTopHitters();
             res.status(200).json(result);
         });
         this._router.get('/franchise/oldest', async (req, res) => {
@@ -69,6 +70,7 @@ export class ChadwickApi {
         return client;
     }
     async getCollectionCount(name: string): Promise<{ collection: string, count: number }> {
+        // TODO: This is probably inaccurate without some type of distinct query
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection(name);
@@ -98,11 +100,11 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getTopHomerunHitters() {
+    async getTopHitters(): Promise<ChadwickTopHitter[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('batting');
-        const docs = collection.aggregate([
+        const docs: any[] = await collection.aggregate([
             {
               $match: {
                   AB: { $gt: 0 }
@@ -110,10 +112,10 @@ export class ChadwickApi {
             },
             {
                 $group: {
+                    atBats: { $sum: '$AB' },
+                    hits: { $sum: '$H' },
+                    homeRuns: { $sum: '$HR' },
                     _id: '$playerID',
-                    H: { $sum: '$H' },
-                    AB: { $sum: '$AB' },
-                    HR: { $sum: '$HR' }
                 }
             },
             {
@@ -129,21 +131,30 @@ export class ChadwickApi {
             },
             {
                 $project: {
-                    H: 1,
-                    AB: 1,
-                    HR: 1,
-                    BA: { $divide: ['$H', '$AB'] },
-                    name: { $concat: ['$player.nameFirst', ' ', '$player.nameLast'] }
+                    atBats: '$atBats',
+                    battingAverage: { $divide: ['$hits', '$atBats'] },
+                    hits: '$hits',
+                    homeRuns: '$homeRuns',
+                    _id: 0,
+                    name: { $concat: ['$player.nameFirst', ' ', '$player.nameLast'] },
+                    playerID: '$_id'
                 }
             },
             {
                 $sort: {
-                    HR: -1
+                    homeRuns: -1
                 }
             }
         ]).limit(20).toArray();
         await client.close();
-        return docs;
+        return docs.map( d => new ChadwickTopHitter(
+            d.atBats,
+            d.battingAverage,
+            d.hits,
+            d.homeRuns,
+            d.name,
+            d.playerI
+        ));
     }
     async getOldestFranchises() {
         const client = await this.connect();
