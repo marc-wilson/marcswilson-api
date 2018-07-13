@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { ChadwickCounts } from './models/chadwick-counts';
 import { ChadwickTopHitter } from './models/chadwick-top-hitter';
+import { ChadwickOldFranchise } from './models/chadwick-old-franchise';
 
 export class ChadwickApi {
     private _express: any;
@@ -153,10 +154,10 @@ export class ChadwickApi {
             d.hits,
             d.homeRuns,
             d.name,
-            d.playerI
+            d.playerID
         ));
     }
-    async getOldestFranchises() {
+    async getOldestFranchises(): Promise<ChadwickOldFranchise[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('teams');
@@ -173,18 +174,19 @@ export class ChadwickApi {
                 $group: {
                     _id: '$franchID',
                     count: { $sum: 1 },
-                    W: { $sum: '$W' },
-                    G: { $sum: '$G' },
+                    wins: { $sum: '$W' },
+                    games: { $sum: '$G' },
                     name: { $last: '$name' }
                 }
             },
             {
                 $project: {
                     count: 1,
-                    W: 1,
-                    G: 1,
-                    winPercentage: { $multiply: [{ $divide: ['$W', '$G'] }, 100] },
-                    name: 1
+                    wins: '$wins',
+                    games: '$games',
+                    winPercentage: { $multiply: [{ $divide: ['$wins', '$games'] }, 100] },
+                    name: 1,
+                    _id: 0
                 }
             },
             {
@@ -194,9 +196,15 @@ export class ChadwickApi {
             }
         ]).limit(10).toArray();
         await client.close();
-        return docs;
+        return docs.map( d => new ChadwickOldFranchise(
+            d.count,
+            d.games,
+            d.name,
+            d.winPercentage,
+            d.wins
+        ));
     }
-    async getTopWorldSeriesWinners() {
+    async getTopWorldSeriesWinners(): Promise<{ count: number, name: string }[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('teams');
@@ -214,6 +222,11 @@ export class ChadwickApi {
                 }
             },
             {
+                $project: {
+                    _id: 0
+                }
+            },
+            {
                 $sort: {
                     count: -1
                 }
@@ -222,7 +235,7 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getAttentanceTrend() {
+    async getAttentanceTrend(): Promise<{ yearID: number, count: number }[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('homegames');
@@ -234,16 +247,20 @@ export class ChadwickApi {
                 }
             },
             {
+                $project: {
+                    yearID: { $convert: { input: '$_id', to: 'int' } },
+                    count: 1,
+                    _id: 0
+                }
+            },
+            {
                 $sort: {
-                    '_id': 1
+                    'yearID': 1
                 }
             }
         ]).toArray();
         await client.close();
-        return docs.map( d => {
-            d._id = Number(d._id);
-            return d;
-        });
+        return docs;
     }
     async getPlayerAutocompleteList(term?: string) {
         let docs = [];
@@ -261,9 +278,19 @@ export class ChadwickApi {
                     }
                 },
                 {
+                  $lookup: {
+                      from: 'appearances',
+                      localField: 'playerID',
+                      foreignField: 'playerID',
+                      as: 'appearances'
+                  }
+                },
+                {
                   $project: {
                       playerID: 1,
-                      name: { $concat: [ '$nameFirst', ' ', '$nameLast'] }
+                      name: { $concat: [ '$nameFirst', ' ', '$nameLast'] },
+                      teams: '$appearances.teamID',
+                      _id: 0
                   }
                 },
                 {
