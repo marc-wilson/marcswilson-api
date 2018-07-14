@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb';
 import { ChadwickCounts } from './models/chadwick-counts';
 import { ChadwickTopHitter } from './models/chadwick-top-hitter';
 import { ChadwickOldFranchise } from './models/chadwick-old-franchise';
+import { ChadwickPlayerSearchResult } from './models/chadwick-player-search-result';
 
 export class ChadwickApi {
     private _express: any;
@@ -262,7 +263,7 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getPlayerAutocompleteList(term?: string) {
+    async getPlayerAutocompleteList(term?: string): Promise<ChadwickPlayerSearchResult[]> {
         let docs = [];
         const client = await this.connect();
         const db = client.db(this.databaseName);
@@ -299,23 +300,9 @@ export class ChadwickApi {
                     }
                 }
             ]).limit( 25 ).toArray();
-        } else {
-            docs = await collection.aggregate([
-                {
-                    $project: {
-                        playerID: 1,
-                        name: { $concat: [ '$nameFirst', ' ', '$nameLast'] }
-                    }
-                },
-                {
-                    $sort: {
-                        name: 1
-                    }
-                }
-            ]).limit(25).toArray();
         }
         await client.close();
-        return docs;
+        return docs.map( d => new ChadwickPlayerSearchResult(d.name, d.playerID, d.teams));
     }
     async getPlayerStats(playerID: string) {
         const client = await this.connect();
