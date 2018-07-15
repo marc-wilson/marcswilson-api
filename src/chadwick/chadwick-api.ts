@@ -48,10 +48,6 @@ export class ChadwickApi {
            const result = await this.getAttentanceTrend();
            res.status(200).json(result);
         });
-        this._router.get('/players/search/', async (req, res) => {
-            const results = await this.getPlayerAutocompleteList();
-            res.status(200).json(results);
-        });
         this._router.get('/players/search/:term', async (req, res) => {
             const term = req.params.term;
             const results = await this.getPlayerAutocompleteList(term);
@@ -263,7 +259,7 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getPlayerAutocompleteList(term?: string): Promise<ChadwickPlayerSearchResult[]> {
+    async getPlayerAutocompleteList(term: string): Promise<ChadwickPlayerSearchResult[]> {
         let docs = [];
         const client = await this.connect();
         const db = client.db(this.databaseName);
