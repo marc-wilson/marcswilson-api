@@ -11,6 +11,15 @@ export class ChadwickPlayerSearchResult implements IChadwickPlayerSearchResult {
     constructor(_name: string, _playerID: string, _teams: string[]) {
         this.name = _name;
         this.playerID = _playerID;
-        this.teams = _teams;
+        this.teams = this.getUniqueTeams(_teams);
+    }
+    getUniqueTeams(teams: string[]): string[] {
+        const ret = [];
+        teams.forEach( t => {
+            if (!ret.find( _t => t === _t )) {
+                ret.push(t);
+            }
+        });
+        return ret;
     }
 }

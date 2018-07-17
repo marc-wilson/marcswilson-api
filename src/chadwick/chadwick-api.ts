@@ -3,6 +3,7 @@ import { ChadwickCounts } from './models/chadwick-counts';
 import { ChadwickTopHitter } from './models/chadwick-top-hitter';
 import { ChadwickOldFranchise } from './models/chadwick-old-franchise';
 import { ChadwickPlayerSearchResult } from './models/chadwick-player-search-result';
+import { PlayerDetail } from './models/player-detail';
 
 export class ChadwickApi {
     private _express: any;
@@ -56,7 +57,7 @@ export class ChadwickApi {
         this._router.get('/players/compare/:player1ID/:player2ID', async (req, res) => {
             const player1ID = req.params.player1ID;
             const player2ID = req.params.player2ID;
-            const data = await Promise.all([this.getPlayerStats(player1ID), this.getPlayerStats(player2ID)]);
+            const data: PlayerDetail[] = await Promise.all([this.getPlayerStats(player1ID), this.getPlayerStats(player2ID)]);
             res.status(200).json(data);
         });
 
@@ -300,11 +301,11 @@ export class ChadwickApi {
         await client.close();
         return docs.map( d => new ChadwickPlayerSearchResult(d.name, d.playerID, d.teams));
     }
-    async getPlayerStats(playerID: string) {
+    async getPlayerStats(playerID: string): Promise<PlayerDetail> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('people');
-        const data = await collection.aggregate([
+        const docs = await collection.aggregate([
             {
                 $match: {
                     playerID: playerID
@@ -341,15 +342,45 @@ export class ChadwickApi {
                     foreignField: 'playerID',
                     as: 'salaries'
                 }
+            },
+            {
+                $project: {
+                    _id: 0
+                }
             }
         ]).toArray();
         await client.close();
-        if (data.length === 1) {
-            return { playerID: playerID, data: data[ 0 ] };
-        } else {
-            console.error('SCENARIO NOT COVERED');
-            debugger;
-        }
+        const doc = docs[0];
+        return new PlayerDetail(
+            doc.playerID,
+            doc.birthYear,
+            doc.birthMonth,
+            doc.birthDay,
+            doc.birthCountry,
+            doc.birthState,
+            doc.birthCity,
+            doc.deathYear,
+            doc.deathMonth,
+            doc.deathDay,
+            doc.deathCountry,
+            doc.deathState,
+            doc.deathCity,
+            doc.nameFirst,
+            doc.nameLast,
+            doc.nameGiven,
+            doc.weight,
+            doc.height,
+            doc.bats,
+            doc.throws,
+            doc.debut,
+            doc.finalGame,
+            doc.retroID,
+            doc.bbrefID,
+            doc.batting,
+            doc.pitching,
+            doc.fielding,
+            doc.salaries
+        );
     }
 
 }
