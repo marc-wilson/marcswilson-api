@@ -382,7 +382,6 @@ export class ChadwickApi {
             doc.salaries
         );
     }
-
 }
 
 new ChadwickApi();
