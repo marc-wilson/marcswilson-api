@@ -4,6 +4,7 @@ import { ChadwickTopHitter } from './models/chadwick-top-hitter';
 import { ChadwickOldFranchise } from './models/chadwick-old-franchise';
 import { ChadwickPlayerSearchResult } from './models/chadwick-player-search-result';
 import { PlayerDetail } from './models/player-detail';
+import { environment } from '../environment';
 
 export class ChadwickApi {
     private _express: any;
@@ -65,7 +66,7 @@ export class ChadwickApi {
     }
 
     async connect(): Promise<MongoClient> {
-        const client = await MongoClient.connect('mongodb://localhost:27017', { useNewUrlParser: true });
+        const client = await MongoClient.connect(environment.mongo_connection_string, { useNewUrlParser: true });
         return client;
     }
     async getCollectionCount(name: string): Promise<{ collection: string, count: number }> {
