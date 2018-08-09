@@ -18,7 +18,9 @@ export class ChadwickApi {
         this._router = this._express.Router();
         this._mongodb = require('mongodb').MongoClient;
         this.databaseName = 'chadwick';
-
+        this._router.get('/test', (req, res) => {
+            res.json({ con: process.env.MONGO_CONNECTION_STRING });
+        });
         this._router.get('/counts', async (req, res) => {
             const promises = [
                 this.getCollectionCount('people'),
