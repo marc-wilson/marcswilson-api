@@ -17,4 +17,4 @@ module.exports = {
         filename: 'server.js'
     },
     target: 'node'
-}
+};

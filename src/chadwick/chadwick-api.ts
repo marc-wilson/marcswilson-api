@@ -4,7 +4,7 @@ import { ChadwickTopHitter } from './models/chadwick-top-hitter';
 import { ChadwickOldFranchise } from './models/chadwick-old-franchise';
 import { ChadwickPlayerSearchResult } from './models/chadwick-player-search-result';
 import { PlayerDetail } from './models/player-detail';
-import { environment } from '../environment';
+import { environment } from '../environments/environment';
 
 export class ChadwickApi {
     private _express: any;
