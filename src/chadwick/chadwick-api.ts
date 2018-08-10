@@ -7,9 +7,9 @@ import { PlayerDetail } from './models/player-detail';
 import { environment } from '../environments/environment';
 
 export class ChadwickApi {
-    private _express: any;
-    private _request: any;
-    private _router: any;
+    private readonly _express: any;
+    private readonly _request: any;
+    private readonly _router: any;
     private readonly databaseName: string;
     private _mongodb: MongoClient;
     constructor() {
