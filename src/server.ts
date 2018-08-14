@@ -2,6 +2,7 @@ import * as ApiTest from './app';
 import * as BoxscoresApi from './mlb/boxscores-api';
 import * as GeoApi from './geo/geo-api';
 import * as ChadwickApi from './chadwick/chadwick-api';
+import * as NpmApi from './npm/npm-api';
 
 class Server {
     private _express: any;
@@ -26,6 +27,7 @@ class Server {
         this._app.use('/api/mlb/boxscores', BoxscoresApi);
         this._app.use('/api/geo', GeoApi);
         this._app.use('/api/mlb/chadwick', ChadwickApi);
+        this._app.use('/api/npm', NpmApi);
     }
 }
 
