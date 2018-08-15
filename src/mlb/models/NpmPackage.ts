@@ -1,3 +1,4 @@
+import * as Showdown from 'showdown';
 interface INpmPackage {
     _id: string;
     _rev: string;
@@ -16,6 +17,7 @@ interface INpmPackage {
     bugs: { url: string };
     keywords: string[];
     _attachments: any;
+    readmeHTML: string;
 }
 
 export class NpmPackage implements INpmPackage {
@@ -36,6 +38,8 @@ export class NpmPackage implements INpmPackage {
     public bugs: { url: string };
     public keywords: string[];
     public _attachments: any;
+    public readmeHTML: string;
+    private readonly converter: any;
     constructor(pkg?) {
         if (pkg) {
             this._id = pkg._id;
@@ -55,6 +59,10 @@ export class NpmPackage implements INpmPackage {
             this.bugs = pkg.bugs;
             this.keywords = pkg.keywords;
             this._attachments = pkg._attachments;
+            this.converter = new Showdown.Converter();
+            if (this.readme && this.readme !== '') {
+                this.readmeHTML = this.converter.makeHtml(this.readme);
+            }
         }
     }
 }
