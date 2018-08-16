@@ -35,7 +35,8 @@ export class ChadwickApi {
             res.status(200).json(result);
         });
         this._router.get('/players/top-hitters', async (req, res) => {
-            const result = await this.getTopHitters();
+            const filter = req.query;
+            const result = await this.getTopHitters(filter);
             res.status(200).json(result);
         });
         this._router.get('/franchise/oldest', async (req, res) => {
@@ -100,7 +101,7 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getTopHitters(): Promise<ChadwickTopHitter[]> {
+    async getTopHitters(filter?: { name: string, value: string }): Promise<ChadwickTopHitter[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('batting');
