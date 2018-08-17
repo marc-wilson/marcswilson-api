@@ -35,12 +35,13 @@ export class ChadwickApi {
             res.status(200).json(result);
         });
         this._router.get('/players/top-hitters', async (req, res) => {
-            const filter = req.query;
+            const filter = Object.keys(req.query).length > 0 ? req.query : null;
             const result = await this.getTopHitters(filter);
             res.status(200).json(result);
         });
         this._router.get('/franchise/oldest', async (req, res) => {
-            const result = await this.getOldestFranchises();
+            const filter = Object.keys(req.query).length > 0 ? req.query : null;
+            const result = await this.getOldestFranchises(filter);
             res.status(200).json(result);
         });
         this._router.get('/worldseries/wins', async (req, res) => {
@@ -105,11 +106,12 @@ export class ChadwickApi {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('batting');
-        const docs: any[] = await collection.aggregate([
+        const sort =  { $sort: { homeRuns: -1 } };
+        const pipeline: any[] = [
             {
-              $match: {
-                  AB: { $gt: 0 }
-              }
+                $match: {
+                    AB: { $gt: 0 }
+                }
             },
             {
                 $group: {
@@ -138,26 +140,28 @@ export class ChadwickApi {
                     homeRuns: '$homeRuns',
                     _id: 0,
                     name: { $concat: ['$player.nameFirst', ' ', '$player.nameLast'] },
+                    birthCountry: '$player.birthCountry',
                     playerID: '$_id'
                 }
-            },
-            {
-                $sort: {
-                    homeRuns: -1
-                }
             }
-        ]).limit(20).toArray();
+        ];
+        if (filter) {
+            pipeline.push({ $match: { birthCountry: filter.value } });
+        }
+        pipeline.push(sort);
+        const docs: any[] = await collection.aggregate(pipeline).limit(20).toArray();
         await client.close();
         return docs.map( d => new ChadwickTopHitter(
             d.atBats,
             d.battingAverage,
+            d.birthCountry,
             d.hits,
             d.homeRuns,
             d.name,
             d.playerID
         ));
     }
-    async getOldestFranchises(): Promise<ChadwickOldFranchise[]> {
+    async getOldestFranchises(filter?: { name: string, value: string }): Promise<ChadwickOldFranchise[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('teams');
@@ -176,7 +180,16 @@ export class ChadwickApi {
                     count: { $sum: 1 },
                     wins: { $sum: '$W' },
                     games: { $sum: '$G' },
-                    name: { $last: '$name' }
+                    name: { $last: '$name' },
+                    park: { $last: '$park' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'parks',
+                    localField: 'park',
+                    foreignField: 'park.name',
+                    as: 'ballpark'
                 }
             },
             {
@@ -186,6 +199,8 @@ export class ChadwickApi {
                     games: '$games',
                     winPercentage: { $multiply: [{ $divide: ['$wins', '$games'] }, 100] },
                     name: 1,
+                    park: 1,
+                    ballpark: '$ballpark',
                     _id: 0
                 }
             },
@@ -200,6 +215,7 @@ export class ChadwickApi {
             d.count,
             d.games,
             d.name,
+            d.park,
             d.winPercentage,
             d.wins
         ));
