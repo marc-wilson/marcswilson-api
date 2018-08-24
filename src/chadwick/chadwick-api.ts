@@ -49,8 +49,9 @@ export class ChadwickApi {
             res.status(200).json(result);
         });
         this._router.get('/homegames/attendance', async (req, res) => {
-           const result = await this.getAttentanceTrend();
-           res.status(200).json(result);
+            const filter = Object.keys(req.query).length > 0 ? req.query : null;
+            const result = await this.getAttendanceTrend(filter);
+            res.status(200).json(result);
         });
         this._router.get('/players/search/:term', async (req, res) => {
             const term = req.params.term;
@@ -234,7 +235,8 @@ export class ChadwickApi {
                 $group: {
                     _id: '$teamID',
                     count: { $sum: 1 },
-                    name: { $last: '$name' }
+                    name: { $last: '$name' },
+                    franchID: { $last: '$teamID' }
                 }
             },
             {
@@ -251,30 +253,44 @@ export class ChadwickApi {
         await client.close();
         return docs;
     }
-    async getAttentanceTrend(): Promise<{ yearID: number, count: number }[]> {
+    async getAttendanceTrend(filter?: { name: string, value: string }): Promise<{ yearID: number, count: number }[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('homegames');
-        const docs = await collection.aggregate([
+        const pipeline = [];
+        if (filter) {
+            pipeline.push({
+                $match: {
+                    'team.key': filter.value
+                }
+            })
+        }
+        pipeline.push(
             {
                 $group: {
                     _id: '$year.key',
                     count: { $sum: '$attendance' }
                 }
-            },
+            }
+        );
+        pipeline.push(
             {
                 $project: {
                     yearID: { $convert: { input: '$_id', to: 'int' } },
+                    teamID: 'team.key',
                     count: 1,
                     _id: 0
                 }
-            },
+            }
+        );
+        pipeline.push(
             {
                 $sort: {
                     'yearID': 1
                 }
             }
-        ]).toArray();
+        );
+        const docs = await collection.aggregate(pipeline).toArray();
         await client.close();
         return docs;
     }
