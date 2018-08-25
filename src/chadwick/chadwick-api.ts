@@ -67,10 +67,50 @@ export class ChadwickApi {
 
         module.exports = this._router;
     }
-
     async connect(): Promise<MongoClient> {
         const client = await MongoClient.connect(environment.mongo_connection_string, { useNewUrlParser: true });
         return client;
+    }
+    async getAttendanceTrend(filter?: { name: string, value: string }): Promise<{ yearID: number, count: number }[]> {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection('homegames');
+        const pipeline = [];
+        if (filter) {
+            pipeline.push({
+                $match: {
+                    'team.key': filter.value
+                }
+            })
+        }
+        pipeline.push(
+            {
+                $group: {
+                    _id: '$year.key',
+                    count: { $sum: '$attendance' }
+                }
+            }
+        );
+        pipeline.push(
+            {
+                $project: {
+                    yearID: { $convert: { input: '$_id', to: 'int' } },
+                    teamID: 'team.key',
+                    count: 1,
+                    _id: 0
+                }
+            }
+        );
+        pipeline.push(
+            {
+                $sort: {
+                    'yearID': 1
+                }
+            }
+        );
+        const docs = await collection.aggregate(pipeline).toArray();
+        await client.close();
+        return docs;
     }
     async getCollectionCount(name: string): Promise<{ collection: string, count: number }> {
         // TODO: This is probably inaccurate without some type of distinct query
@@ -250,47 +290,6 @@ export class ChadwickApi {
                 }
             }
         ]).limit(10).toArray();
-        await client.close();
-        return docs;
-    }
-    async getAttendanceTrend(filter?: { name: string, value: string }): Promise<{ yearID: number, count: number }[]> {
-        const client = await this.connect();
-        const db = client.db(this.databaseName);
-        const collection = db.collection('homegames');
-        const pipeline = [];
-        if (filter) {
-            pipeline.push({
-                $match: {
-                    'team.key': filter.value
-                }
-            })
-        }
-        pipeline.push(
-            {
-                $group: {
-                    _id: '$year.key',
-                    count: { $sum: '$attendance' }
-                }
-            }
-        );
-        pipeline.push(
-            {
-                $project: {
-                    yearID: { $convert: { input: '$_id', to: 'int' } },
-                    teamID: 'team.key',
-                    count: 1,
-                    _id: 0
-                }
-            }
-        );
-        pipeline.push(
-            {
-                $sort: {
-                    'yearID': 1
-                }
-            }
-        );
-        const docs = await collection.aggregate(pipeline).toArray();
         await client.close();
         return docs;
     }
