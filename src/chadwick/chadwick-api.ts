@@ -319,7 +319,7 @@ export class ChadwickApi {
                 {
                   $project: {
                       playerID: 1,
-                      name: { $concat: [ '$nameFirst', ' ', '$nameLast'] },
+                      name: '$fullName',
                       teams: '$appearances.teamID',
                       _id: 0
                   }
