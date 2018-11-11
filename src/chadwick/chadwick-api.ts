@@ -319,7 +319,11 @@ export class ChadwickApi {
                 {
                   $project: {
                       playerID: 1,
-                      name: '$fullName',
+                      name: { $concat: ['$nameFirst', ' ', '$nameLast'] },
+                      birthState: '$birthState',
+                      birthCountry: 1,
+                      debut: 1,
+                      finalGame: 1,
                       teams: '$appearances.teamID',
                       _id: 0
                   }
@@ -332,7 +336,7 @@ export class ChadwickApi {
             ]).limit( 25 ).toArray();
         }
         await client.close();
-        return docs.map( d => new ChadwickPlayerSearchResult(d.name, d.playerID, d.teams));
+        return docs.map( d => new ChadwickPlayerSearchResult(d));
     }
     async getPlayerStats(playerID: string): Promise<PlayerDetail> {
         const client = await this.connect();
