@@ -67,7 +67,7 @@ export class ChadwickApi {
         this._router.get('/players/:playerID', async (req, res) => {
             const playerID = req.params.playerID;
             const data: PlayerDetail = await this.getPlayerStats(playerID);
-            req.status(200).json(data);
+            res.status(200).json(data);
         });
 
         module.exports = this._router;
