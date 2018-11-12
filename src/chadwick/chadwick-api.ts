@@ -96,7 +96,7 @@ export class ChadwickApi {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection('teams');
-        return await collection.distinct('name', { yearID: yearId });
+        return await collection.find({yearID: +yearId }).toArray();
     }
     async getAttendanceTrend(filter?: { name: string, value: string }): Promise<{ yearID: number, count: number }[]> {
         const client = await this.connect();
