@@ -97,14 +97,25 @@ export class ChadwickApi {
     async getCollections(): Promise<any[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
-        return await db.listCollections().toArray();
+        const collections = await db.listCollections().toArray();
+        return collections.sort( (a, b) => {
+            if (a.name < b.name) { return -1; }
+            if (a.name > b.name) { return 1; }
+            return 0;
+        } );
 
     }
     async getCollectionData(collectionName: string): Promise<any[]> {
         const client = await this.connect();
         const db = client.db(this.databaseName);
         const collection = db.collection(collectionName);
-        return await collection.find({}).limit(25).toArray();
+        return await collection.aggregate([
+            {
+                $project: {
+                    _id: 0
+                }
+            }
+        ]).limit(25).toArray();
     }
     async getDistinctYears(): Promise<number[]> {
         const client = await this.connect();
