@@ -30,6 +30,10 @@ export class ChadwickApi {
             const chadwickCounts = new ChadwickCounts(counts);
             res.status(200).json(chadwickCounts);
         });
+        this._router.get('/collections', async (req, res) => {
+           const collections = await this.getCollections();
+           res.status(200).json(collections);
+        });
         this._router.get('/years', async (req, res) => {
            const years = await this.getDistinctYears();
            res.status(200).json(years);
@@ -84,6 +88,12 @@ export class ChadwickApi {
     async connect(): Promise<MongoClient> {
         const client = await MongoClient.connect(environment.mongo_connection_string, { useNewUrlParser: true });
         return client;
+    }
+    async getCollections(): Promise<any[]> {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        return await db.listCollections().toArray();
+
     }
     async getDistinctYears(): Promise<number[]> {
         const client = await this.connect();
