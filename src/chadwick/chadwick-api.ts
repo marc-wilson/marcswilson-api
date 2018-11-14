@@ -34,6 +34,11 @@ export class ChadwickApi {
            const collections = await this.getCollections();
            res.status(200).json(collections);
         });
+        this._router.get('/collections/:collection', async (req, res) => {
+            const collectionName = req.params.collection;
+            const data = await this.getCollectionData(collectionName);
+            res.status(200).json(data);
+        });
         this._router.get('/years', async (req, res) => {
            const years = await this.getDistinctYears();
            res.status(200).json(years);
@@ -94,6 +99,12 @@ export class ChadwickApi {
         const db = client.db(this.databaseName);
         return await db.listCollections().toArray();
 
+    }
+    async getCollectionData(collectionName: string): Promise<any[]> {
+        const client = await this.connect();
+        const db = client.db(this.databaseName);
+        const collection = db.collection(collectionName);
+        return await collection.find({}).limit(25).toArray();
     }
     async getDistinctYears(): Promise<number[]> {
         const client = await this.connect();
